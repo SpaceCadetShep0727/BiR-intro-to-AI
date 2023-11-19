@@ -1,11 +1,28 @@
 import pygame
 
 from queue import PriorityQueue
-from CPU_Vision import get_image_data
+from CPU_Vision import get_image_data, get_tile_centerpoint
+from robot_controller import get_robot_commands
+
+image = 'Images/maze.png'
+robot_image = 'Images/robot2.png'
+blank_image = 'Images/robot2_blank.png'
 
 WIDTH = 800
+ROWS = 50
+center_points = []
+
+# Create background and sprites 
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
+robot_sprite = pygame.image.load(robot_image)
+blank_sprite = pygame.image.load(blank_image)
+sprite_scale = 25,25
+robot_sprite = pygame.transform.scale(robot_sprite, sprite_scale)
+blank_sprite = pygame.transform.scale(blank_sprite, sprite_scale)
+
+
 pygame.display.set_caption("A* Path Finding Algorithm")
+
 
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
@@ -17,6 +34,7 @@ PURPLE = (128, 0, 128)
 ORANGE = (255, 165, 0)
 GREY = (128, 128, 128)
 TURQUOISE = (64, 224, 208)
+robot_path =[]
 
 
 class Spot:
@@ -100,14 +118,18 @@ def h(p1, p2):
 
 
 def reconstruct_path(came_from, current, draw):
+    path_points = []
     while current in came_from:
         current = came_from[current]
-        print(current.row, current.col)
+        path_points.append((current.row, current.col))
         current.make_path()
         draw()
-
+    
+    return path_points
 
 def algorithm(draw, grid, start, end):
+    # Get access to global variables 
+    global robot_path, center_points
     count = 0
     open_set = PriorityQueue()
     open_set.put((0, count, start))
@@ -128,7 +150,15 @@ def algorithm(draw, grid, start, end):
         open_set_hash.remove(current)
 
         if current == end:
-            reconstruct_path(came_from, end, draw)
+            # Code for path reconstruction
+            robot_path = reconstruct_path(came_from, end, draw)
+            
+            # Reverse constructed path for right order
+            robot_path.reverse()
+            
+            # Get path center point for animation
+            center_points = get_tile_centerpoint(image, robot_path)
+            get_robot_commands(robot_path)
             end.make_end()
             return True
 
@@ -169,9 +199,9 @@ def make_grid(rows, width):
 def draw_grid(win, rows, width):
     gap = width // rows
     for i in range(rows):
-        pygame.draw.line(win, GREY, (0, i * gap), (width, i * gap))
+        pygame.draw.line(win, WHITE, (0, i * gap), (width, i * gap))
         for j in range(rows):
-            pygame.draw.line(win, GREY, (j * gap, 0), (j * gap, width))
+            pygame.draw.line(win, WHITE, (j * gap, 0), (j * gap, width))
 
 
 def draw(win, grid, rows, width):
@@ -196,14 +226,29 @@ def get_clicked_pos(pos, rows, width):
 
 
 def main(win, width):
-    ROWS = 50
+    
+    # Define draw maze function 
+    def draw_maze(tiles):
+        for tile in tiles: 
+            spot = grid[tile[0]][tile[1]]
+            spot.make_barrier()
+   
+    # Define show robot path function 
+    def show_robot_path(path_points):
+        clock = pygame.time.Clock()
+        for index, point in enumerate(path_points):
+           WIN.blit(robot_sprite, point) 
+           pygame.display.update()
+           clock.tick(20)
+           WIN.blit(blank_sprite, point)
+           
     grid = make_grid(ROWS, width)
 
     start = None
     end = None
 
     run = True
-    tiles = get_image_data()
+    tiles = get_image_data(image)
 
     while run:
         draw(win, grid, ROWS, width)
@@ -213,6 +258,7 @@ def main(win, width):
 
             if pygame.mouse.get_pressed()[0]:  # LEFT
                 pos = pygame.mouse.get_pos()
+                print(pos)
                 row, col = get_clicked_pos(pos, ROWS, width)
                 spot = grid[row][col]
                 if not start and spot != end:
@@ -228,6 +274,7 @@ def main(win, width):
 
             elif pygame.mouse.get_pressed()[2]:  # RIGHT
                 pos = pygame.mouse.get_pos()
+                
                 row, col = get_clicked_pos(pos, ROWS, width)
                 spot = grid[row][col]
                 spot.reset()
@@ -249,10 +296,12 @@ def main(win, width):
                     start = None
                     end = None
                     grid = make_grid(ROWS, width)
+                
                 if event.key == pygame.K_f:
-                   for tile in tiles: 
-                       spot = grid[tile[0]][tile[1]]
-                       spot.make_barrier()
+                   draw_maze(tiles)
+                if event.key == pygame.K_r and center_points is not None:
+                    show_robot_path(center_points)
+                    
 
     pygame.quit()
 

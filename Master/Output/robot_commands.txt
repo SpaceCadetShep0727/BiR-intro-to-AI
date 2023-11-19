@@ -1,0 +1,12 @@
+def when_started1():
+	drivetrain.turn_for(LEFT, 270, DEGREES)
+	drivetrain.drive_for(FORWARD, 44, MM)
+	drivetrain.turn_for(LEFT, 0, DEGREES)
+	drivetrain.drive_for(FORWARD, 44, MM)
+	drivetrain.turn_for(LEFT, 0, DEGREES)
+	drivetrain.drive_for(FORWARD, 44, MM)
+	drivetrain.turn_for(LEFT, 0, DEGREES)
+	drivetrain.drive_for(FORWARD, 44, MM)
+	drivetrain.turn_for(LEFT, 0, DEGREES)
+	drivetrain.drive_for(FORWARD, 44, MM)
+vr_thread(when_started1)
